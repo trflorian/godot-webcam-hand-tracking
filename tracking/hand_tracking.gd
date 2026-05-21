@@ -11,6 +11,9 @@ var task_file := "res://tasks/hand_landmarker.task"
 
 var is_showing_webcam: bool = false
 
+var left_hand: Hand
+var right_hand: Hand
+
 func _result_callback(result: MediaPipeHandLandmarkerResult, image: MediaPipeImage, _timestamp_ms: int) -> void:
 	show_result(image, result)
 
@@ -23,13 +26,21 @@ func _init_task() -> void:
 	base_options.delegate = MediaPipeTaskBaseOptions.DELEGATE_CPU
 	base_options.model_asset_buffer = file.get_buffer(file.get_length())
 	task = MediaPipeHandLandmarker.new()
-	task.initialize(base_options, MediaPipeVisionTask.RUNNING_MODE_LIVE_STREAM)
+	task.initialize(base_options, MediaPipeVisionTask.RUNNING_MODE_LIVE_STREAM, 2, 0.25, 0.25, 0.25)
 	task.result_callback.connect(self._result_callback)
 	
 func _ready() -> void:
 	_init_task()
 	_start_camera()
+	
+	left_hand = _create_new_hand()
+	right_hand = _create_new_hand()
 
+func _create_new_hand() -> Hand:
+	var hand_instance := Hand.new()
+	add_child(hand_instance)
+	return hand_instance
+	
 func _start_camera() -> void:
 	CameraServer.monitoring_feeds = true
 	await CameraServer.camera_feeds_updated
@@ -137,6 +148,10 @@ func show_result(output: MediaPipeImage, result: MediaPipeHandLandmarkerResult) 
 	var image = output.image
 	
 	var should_show_camera = len(result.hand_landmarks) == 0
+	
+	if not should_show_camera:
+		print(result.handedness[0].head_index)
+		right_hand.parse_hand_landmarks_from_data(result.hand_landmarks[0])
 	
 	if not is_showing_webcam and should_show_camera:
 		is_showing_webcam = true

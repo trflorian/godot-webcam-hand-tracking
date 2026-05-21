@@ -21,6 +21,11 @@ MediaPipeExternalFiles="*uid://d3neb5cwnsvqs"
 GDMPAndroid="*uid://ccp6gbqbg33bg"
 LineRenderer="*uid://ccl5gmdd5sbsd"
 
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/GDMP/plugin.cfg")

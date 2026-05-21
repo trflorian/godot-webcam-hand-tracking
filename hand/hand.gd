@@ -24,6 +24,9 @@ var pew_audio_stream_player: AudioStreamPlayer
 func _ready() -> void:
 	_create_hand_landmark_spheres()
 	_create_hand_lines()
+	
+	# by default hide
+	visible = false
 
 func _create_hand_landmark_spheres() -> void:
 	for i in range(NUM_LANDMARKS):
@@ -42,19 +45,20 @@ func _process(_delta: float) -> void:
 	_update_hand_lines()
 
 func _input(event: InputEvent) -> void:
-	return
-	#if event is InputEventKey:
-		#if event.is_pressed() and event.keycode == KEY_SPACE:
-			#var bullet_inst: Bullet = bullet.instantiate()
-			#add_child(bullet_inst)
-			#var dir = (hand_landmarks[8].global_position - hand_landmarks[7].global_position).normalized()
-			#dir.z = 0
-			#bullet_inst.direction = dir  
-			#bullet_inst.global_position = hand_landmarks[8].global_position
-			#bullet_inst.look_at(bullet_inst.global_position + dir, Vector3.UP)
-			#
-			#pew_audio_stream_player.pitch_scale = randf_range(0.95, 1.05)
-			#pew_audio_stream_player.play()
+	if event is InputEventKey:
+		if event.is_pressed() and event.keycode == KEY_SPACE:
+			var bullet_inst: Bullet = bullet.instantiate()
+			add_child(bullet_inst)
+			var dir = (hand_landmarks[8].global_position - hand_landmarks[7].global_position).normalized()
+			dir.z = 0
+			bullet_inst.direction = dir  
+			bullet_inst.global_position = hand_landmarks[8].global_position + dir
+			
+			if dir.length() > 0:
+				bullet_inst.look_at(bullet_inst.global_position + dir, Vector3.UP)
+			
+			pew_audio_stream_player.pitch_scale = randf_range(0.95, 1.05)
+			pew_audio_stream_player.play()
 
 func _update_hand_lines() -> void:
 	for i in HAND_LINES_MAPPING.size():
@@ -68,9 +72,15 @@ func _update_hand_landmark(landmark_id: int, landmark_pos: Vector3) -> void:
 	lm.target = landmark_pos
 
 func parse_hand_landmarks_from_data(hand_data: MediaPipeNormalizedLandmarks) -> void:
+	visible = hand_data != null
+	
+	if not hand_data:
+		return
+	
 	for lm_id in range(NUM_LANDMARKS):
 		var lm_data := hand_data.landmarks[lm_id]
-		var pos_cam = Vector3(lm_data.x, lm_data.y, lm_data.z) - Vector3.ONE * 0.5
-		var pos_xyz = Vector3(-pos_cam[0], -pos_cam[1], pos_cam[2]) * HAND_SCALE
-		pos_xyz.z += 16
+		
+		var cam_xy = Vector2(lm_data.x, lm_data.y) - 0.5 * Vector2.ONE
+		cam_xy *= HAND_SCALE
+		var pos_xyz = Vector3(-cam_xy.x, -cam_xy.y, lm_data.z)
 		_update_hand_landmark(lm_id, pos_xyz)

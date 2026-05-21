@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://chqtekgyx6oqi"]
 
 [ext_resource type="Script" uid="uid://bxnvdu6lk52u7" path="res://tracking/hand_tracking.gd" id="1_f3sb7"]
+[ext_resource type="AudioStream" uid="uid://sjevphkuqfe2" path="res://bullet/pew.ogg" id="2_fj7yv"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_f3sb7"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -37,11 +38,33 @@ script = ExtResource("1_f3sb7")
 
 [node name="CameraView" type="TextureRect" parent="HandTracking/CameraCanvasLayer" unique_id=796806377]
 modulate = Color(1, 1, 1, 0)
-offset_right = 1152.0
-offset_bottom = 648.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 texture = SubResource("ViewportTexture_f3sb7")
 expand_mode = 3
 stretch_mode = 5
+flip_h = true
+
+[node name="CameraStatus" type="Label" parent="HandTracking/CameraCanvasLayer" unique_id=1335484493]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -255.0
+offset_top = -52.0
+offset_right = 255.0
+offset_bottom = 52.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 40
+text = "..."
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="CameraViewport" type="SubViewport" parent="HandTracking" unique_id=349586267]
 disable_3d = true
@@ -50,3 +73,6 @@ render_target_update_mode = 4
 [node name="CameraSurface" type="TextureRect" parent="HandTracking/CameraViewport" unique_id=1188329137]
 offset_right = 40.0
 offset_bottom = 40.0
+
+[node name="BulletAudio" type="AudioStreamPlayer" parent="HandTracking" unique_id=1184950516]
+stream = ExtResource("2_fj7yv")

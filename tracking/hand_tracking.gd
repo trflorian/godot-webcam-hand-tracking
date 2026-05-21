@@ -6,6 +6,7 @@ var task: MediaPipeHandLandmarker
 var task_file := "res://tasks/hand_landmarker.task"
 
 @onready var camera_view: TextureRect = $CameraCanvasLayer/CameraView
+@onready var camera_status: Label = $CameraCanvasLayer/CameraStatus
 @onready var camera_viewport: SubViewport = $CameraViewport
 @onready var camera_texture: TextureRect = $CameraViewport/CameraSurface
 
@@ -18,9 +19,11 @@ func _result_callback(result: MediaPipeHandLandmarkerResult, image: MediaPipeIma
 	show_result(image, result)
 
 func _init_task() -> void:
+	camera_status.text = "Loading Mediapipe Task file..."
 	var file := load_model(task_file)
 	if file == null:
 		printerr("failed to load model from task file %s" % str(task_file))
+		camera_status.text = "Failed to load Mediapipe task file..."
 		return
 	var base_options := MediaPipeTaskBaseOptions.new()
 	base_options.delegate = MediaPipeTaskBaseOptions.DELEGATE_CPU
@@ -38,18 +41,22 @@ func _ready() -> void:
 
 func _create_new_hand() -> Hand:
 	var hand_instance := Hand.new()
+	hand_instance.pew_audio_stream_player = $BulletAudio
 	add_child(hand_instance)
 	return hand_instance
 	
 func _start_camera() -> void:
+	camera_status.text = "Searching for webcams..."
 	CameraServer.monitoring_feeds = true
 	await CameraServer.camera_feeds_updated
 	var num_cameras = CameraServer.get_feed_count()
 	if num_cameras == 0:
 		print("no camera found")
+		camera_status.text = "No camera connected!"
 		return
 	camera_feed = CameraServer.get_feed(0)
-	print("found %d cameras, using first camera '%s'" % [num_cameras, camera_feed.get_name()])
+	camera_status.text = "Opening '%s'..." % camera_feed.get_name()
+	
 	camera_feed.format_changed.connect(self._camera_format_changed, ConnectFlags.CONNECT_DEFERRED)
 	camera_feed.frame_changed.connect(self._camera_frame_changed, ConnectFlags.CONNECT_DEFERRED)
 	
@@ -128,6 +135,8 @@ func _camera_frame_changed() -> void:
 	
 	if not camera_view.visible:
 		camera_view.visible = true
+	if camera_status.visible:
+		camera_status.visible = false
 	
 	var texture := camera_viewport.get_texture()
 
@@ -144,24 +153,32 @@ func load_model(path: String) -> FileAccess:
 	assert(FileAccess.file_exists(path), "task file %s does not exist" % path)
 	return FileAccess.open(path, FileAccess.READ)
 
-func show_result(output: MediaPipeImage, result: MediaPipeHandLandmarkerResult) -> void:
-	var image = output.image
+func show_result(_image: MediaPipeImage, result: MediaPipeHandLandmarkerResult) -> void:
+	var left_hand_landmarks: MediaPipeNormalizedLandmarks = null
+	var right_hand_landmarks: MediaPipeNormalizedLandmarks = null
+	
+	# sanity check
+	assert(len(result.handedness) == len(result.hand_landmarks))
+	
+	for i in range(len(result.handedness)):
+		var cat = result.handedness[i].categories[0].category_name
+		if not left_hand_landmarks and cat == "Left":
+			left_hand_landmarks = result.hand_landmarks[i]
+		if not right_hand_landmarks and cat == "Right":
+			right_hand_landmarks = result.hand_landmarks[i]
+	
+	left_hand.parse_hand_landmarks_from_data(left_hand_landmarks)
+	right_hand.parse_hand_landmarks_from_data(right_hand_landmarks)
 	
 	var should_show_camera = len(result.hand_landmarks) == 0
-	
-	if not should_show_camera:
-		print(result.handedness[0].head_index)
-		right_hand.parse_hand_landmarks_from_data(result.hand_landmarks[0])
 	
 	if not is_showing_webcam and should_show_camera:
 		is_showing_webcam = true
 		var tween = get_tree().create_tween()
 		tween.tween_property(camera_view, "modulate", Color(1,1,1,1), 1.0)
-		tween.set_ease(Tween.EASE_IN_OUT)
+		tween.set_ease(Tween.EASE_OUT)
 	if is_showing_webcam and not should_show_camera:
 		is_showing_webcam = false
 		var tween = get_tree().create_tween()
 		tween.tween_property(camera_view, "modulate", Color(1,1,1,0), 1.0)
-		tween.set_ease(Tween.EASE_IN_OUT)
-	
-	image.convert(Image.FORMAT_RGB8)
+		tween.set_ease(Tween.EASE_OUT)

@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://chqtekgyx6oqi"]
+
+[ext_resource type="Script" uid="uid://bxnvdu6lk52u7" path="res://hand_tracking.gd" id="1_f3sb7"]
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_f3sb7"]
+viewport_path = NodePath("CanvasLayer/HandTracking/CameraViewport")
+
+[node name="World" type="Node3D" unique_id=702269123]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=588734707]
+
+[node name="HandTracking" type="MarginContainer" parent="CanvasLayer" unique_id=1903912889]
+offset_right = 1152.0
+offset_bottom = 648.0
+script = ExtResource("1_f3sb7")
+
+[node name="CameraViewport" type="SubViewport" parent="CanvasLayer/HandTracking" unique_id=349586267]
+disable_3d = true
+render_target_update_mode = 4
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/HandTracking/CameraViewport" unique_id=1188329137]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Image" type="TextureRect" parent="CanvasLayer/HandTracking" unique_id=796806377]
+modulate = Color(1, 1, 1, 0.078431375)
+layout_mode = 2
+texture = SubResource("ViewportTexture_f3sb7")
+expand_mode = 3
+stretch_mode = 5

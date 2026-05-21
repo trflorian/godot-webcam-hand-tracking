@@ -2,29 +2,48 @@
 
 [ext_resource type="Script" uid="uid://bxnvdu6lk52u7" path="res://hand_tracking.gd" id="1_f3sb7"]
 
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_f3sb7"]
+sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+
+[sub_resource type="Sky" id="Sky_fj7yv"]
+sky_material = SubResource("ProceduralSkyMaterial_f3sb7")
+
+[sub_resource type="Environment" id="Environment_tlwt5"]
+background_mode = 1
+background_color = Color(0.5529412, 0.7529412, 0.8901961, 1)
+sky = SubResource("Sky_fj7yv")
+tonemap_mode = 2
+
 [sub_resource type="ViewportTexture" id="ViewportTexture_f3sb7"]
-viewport_path = NodePath("CanvasLayer/HandTracking/CameraViewport")
+viewport_path = NodePath("HandTracking/CameraViewport")
 
 [node name="World" type="Node3D" unique_id=702269123]
 
-[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=588734707]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1556942276]
+environment = SubResource("Environment_tlwt5")
 
-[node name="HandTracking" type="MarginContainer" parent="CanvasLayer" unique_id=1903912889]
-offset_right = 1152.0
-offset_bottom = 648.0
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=36808008]
+transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
+shadow_enabled = true
+
+[node name="HandTracking" type="Node3D" parent="." unique_id=1013154729]
 script = ExtResource("1_f3sb7")
 
-[node name="CameraViewport" type="SubViewport" parent="CanvasLayer/HandTracking" unique_id=349586267]
-disable_3d = true
-render_target_update_mode = 4
+[node name="CameraCanvasLayer" type="CanvasLayer" parent="HandTracking" unique_id=588734707]
 
-[node name="TextureRect" type="TextureRect" parent="CanvasLayer/HandTracking/CameraViewport" unique_id=1188329137]
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="Image" type="TextureRect" parent="CanvasLayer/HandTracking" unique_id=796806377]
-modulate = Color(1, 1, 1, 0.078431375)
-layout_mode = 2
+[node name="CameraView" type="TextureRect" parent="HandTracking/CameraCanvasLayer" unique_id=796806377]
+modulate = Color(1, 1, 1, 0)
+offset_right = 1152.0
+offset_bottom = 648.0
 texture = SubResource("ViewportTexture_f3sb7")
 expand_mode = 3
 stretch_mode = 5
+
+[node name="CameraViewport" type="SubViewport" parent="HandTracking" unique_id=349586267]
+disable_3d = true
+render_target_update_mode = 4
+
+[node name="CameraSurface" type="TextureRect" parent="HandTracking/CameraViewport" unique_id=1188329137]
+offset_right = 40.0
+offset_bottom = 40.0

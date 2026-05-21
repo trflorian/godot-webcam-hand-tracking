@@ -1,13 +1,15 @@
-extends Control
+extends Node3D
 
 var camera_feed: CameraFeed
 
 var task: MediaPipeHandLandmarker
 var task_file := "res://tasks/hand_landmarker.task"
 
-@onready var image_view: TextureRect = $Image
+@onready var camera_view: TextureRect = $CameraCanvasLayer/CameraView
 @onready var camera_viewport: SubViewport = $CameraViewport
-@onready var camera_texture: TextureRect = $CameraViewport/TextureRect
+@onready var camera_texture: TextureRect = $CameraViewport/CameraSurface
+
+var is_showing_webcam: bool = false
 
 func _result_callback(result: MediaPipeHandLandmarkerResult, image: MediaPipeImage, _timestamp_ms: int) -> void:
 	show_result(image, result)
@@ -112,6 +114,10 @@ func _camera_format_changed() -> void:
 		
 func _camera_frame_changed() -> void:
 	await RenderingServer.frame_post_draw
+	
+	if not camera_view.visible:
+		camera_view.visible = true
+	
 	var texture := camera_viewport.get_texture()
 
 	var image := texture.get_image()
@@ -130,6 +136,17 @@ func load_model(path: String) -> FileAccess:
 func show_result(output: MediaPipeImage, result: MediaPipeHandLandmarkerResult) -> void:
 	var image = output.image
 	
-	print(result.hand_landmarks)
+	var should_show_camera = len(result.hand_landmarks) == 0
+	
+	if not is_showing_webcam and should_show_camera:
+		is_showing_webcam = true
+		var tween = get_tree().create_tween()
+		tween.tween_property(camera_view, "modulate", Color(1,1,1,1), 1.0)
+		tween.set_ease(Tween.EASE_IN_OUT)
+	if is_showing_webcam and not should_show_camera:
+		is_showing_webcam = false
+		var tween = get_tree().create_tween()
+		tween.tween_property(camera_view, "modulate", Color(1,1,1,0), 1.0)
+		tween.set_ease(Tween.EASE_IN_OUT)
 	
 	image.convert(Image.FORMAT_RGB8)

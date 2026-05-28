@@ -15,6 +15,25 @@ var is_showing_webcam: bool = false
 var left_hand: Hand
 var right_hand: Hand
 
+# Android YUV_420_888 arrives as separate Y and CbCr textures.
+# The viewport needs RGB, so this combines both planes before MediaPipe reads it.
+const CAMERA_YCBCR_SHADER := """
+shader_type canvas_item;
+
+uniform sampler2D cbcr_texture : filter_linear, repeat_disable;
+
+void fragment() {
+	float y = texture(TEXTURE, UV).r;
+	vec2 cbcr = texture(cbcr_texture, UV).rg - vec2(0.5, 0.5);
+	vec3 rgb = vec3(
+		y + 1.403 * cbcr.y,
+		y - 0.344 * cbcr.x - 0.714 * cbcr.y,
+		y + 1.770 * cbcr.x
+	);
+	COLOR = vec4(rgb, 1.0);
+}
+"""
+
 func _result_callback(result: MediaPipeHandLandmarkerResult, image: MediaPipeImage, _timestamp_ms: int) -> void:
 	show_result(image, result)
 
@@ -29,32 +48,88 @@ func _init_task() -> void:
 	base_options.delegate = MediaPipeTaskBaseOptions.DELEGATE_CPU
 	base_options.model_asset_buffer = file.get_buffer(file.get_length())
 	task = MediaPipeHandLandmarker.new()
-	task.initialize(base_options, MediaPipeVisionTask.RUNNING_MODE_LIVE_STREAM, 2, 0.25, 0.25, 0.25)
+	task.initialize(base_options, MediaPipeVisionTask.RUNNING_MODE_LIVE_STREAM, 2, 0.4, 0.4, 0.4)
 	task.result_callback.connect(self._result_callback)
 	
 func _ready() -> void:
 	_init_task()
+	_request_camera_permissions()
 	_start_camera()
 	
 	left_hand = _create_new_hand()
 	right_hand = _create_new_hand()
+
+func _request_camera_permissions() -> bool:
+	if not OS.has_feature("android"):
+		return true
+	
+	# 1. Trigger the native OS permission pop-up
+	OS.request_permissions()
+	
+	# 2. Wait for the user to make a decision
+	await get_tree().on_request_permissions_result
+	
+	# 3. Check if they actually granted it before starting
+	if not has_camera_permission():
+		camera_status.text = "Camera permission denied!"
+		print("Cannot start camera without system permissions.")
+		return false
+	
+	return true
 
 func _create_new_hand() -> Hand:
 	var hand_instance := Hand.new()
 	hand_instance.pew_audio_stream_player = $BulletAudio
 	add_child(hand_instance)
 	return hand_instance
+
+func has_camera_permission() -> bool:
+	# Check if the camera permission is included in the granted array
+	var granted = OS.get_granted_permissions()
+	return "android.permission.CAMERA" in granted
+
+func _get_front_camera_feed() -> CameraFeed:
+	var num_cameras = CameraServer.get_feed_count()
 	
+	if num_cameras == 0:
+		camera_status.text = "No camera connected!"
+		return
+
+	var target_feed: CameraFeed = null
+
+	# Loop through all available sensors on the system
+	for i in range(num_cameras):
+		var feed = CameraServer.get_feed(i)
+		
+		# Check if this specific feed is mounted on the front
+		if feed.get_position() == CameraFeed.FEED_FRONT:
+			target_feed = feed
+			print("Front camera found at index: ", i)
+			break # Found it! Break the loop.
+	
+	if target_feed == null:
+		camera_status.text = "No front camera found!"
+		return
+
+	return target_feed
+
+
 func _start_camera() -> void:
 	camera_status.text = "Searching for webcams..."
 	CameraServer.monitoring_feeds = true
-	await CameraServer.camera_feeds_updated
-	var num_cameras = CameraServer.get_feed_count()
-	if num_cameras == 0:
-		print("no camera found")
-		camera_status.text = "No camera connected!"
+	if not OS.has_feature("android"):
+		await CameraServer.camera_feeds_updated
+	else:
+		# Small delay for Android to safely discover hardware back from the permission prompt
+		await get_tree().create_timer(0.2).timeout 
+	
+	if not OS.has_feature("android"):
+		camera_feed = CameraServer.get_feed(0)
+	else:
+		camera_feed = _get_front_camera_feed()
+		
+	if camera_feed == null:
 		return
-	camera_feed = CameraServer.get_feed(0)
 	camera_status.text = "Opening '%s'..." % camera_feed.get_name()
 	
 	camera_feed.format_changed.connect(self._camera_format_changed, ConnectFlags.CONNECT_DEFERRED)
@@ -70,17 +145,22 @@ func _start_camera() -> void:
 	camera_feed.feed_is_active = true
 
 const FORMAT_RANKING := {
+	"YUV_420_888": 2,
 	"YUYV 4:2:2": 1,
 	"Motion-JPEG": -1,
 }
+
+const TARGET_CAMERA_SIZE := Vector2i(1280, 720)
 
 func _fps_from_format(format: Dictionary) -> int:
 	if format.has("frame_numerator") and format.has("frame_denominator"):
 		return round(format["frame_denominator"] / format["frame_numerator"])
 	if format.has("framerate_numerator") and format.has("framerate_denominator"):
 		return round(format["framerate_numerator"] / format["framerate_denominator"])
-	printerr("no fps found in foramt: ", format)
-	return 0
+	return -1
+
+func _resolution_distance_from_target(format: Dictionary) -> int:
+	return abs(format.width - TARGET_CAMERA_SIZE.x) + abs(format.height - TARGET_CAMERA_SIZE.y)
 
 func _compare_formats(a: Dictionary, b: Dictionary) -> bool:
 	var format_rank = FORMAT_RANKING.get(a.format, 0) - FORMAT_RANKING.get(b.format, 0)
@@ -89,9 +169,12 @@ func _compare_formats(a: Dictionary, b: Dictionary) -> bool:
 	var frame_rank = _fps_from_format(a) - _fps_from_format(b)
 	if frame_rank != 0:
 		return frame_rank > 0
+	var resolution_rank = _resolution_distance_from_target(b) - _resolution_distance_from_target(a)
+	if resolution_rank != 0:
+		return resolution_rank > 0
 	var area_rank = a.width * a.height - b.width * b.height
 	if area_rank != 0:
-		return area_rank > 0
+		return area_rank < 0
 	return false
 
 func argmax_camera_format(formats: Array) -> int:
@@ -103,20 +186,46 @@ func argmax_camera_format(formats: Array) -> int:
 			best_format_idx = i
 	return best_format_idx
 
+func _create_camera_texture(which_feed: CameraServer.FeedImage) -> CameraTexture:
+	var texture := CameraTexture.new()
+	texture.camera_feed_id = camera_feed.get_id()
+	texture.which_feed = which_feed
+	return texture
+
+func _create_ycbcr_material(cbcr_texture: CameraTexture) -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = CAMERA_YCBCR_SHADER
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("cbcr_texture", cbcr_texture)
+	return material
+
 func _camera_format_changed() -> void:
 	if camera_feed == null:
 		return
-	print("camera format changed to %s" % camera_feed.get_datatype())
-	assert(camera_feed.get_datatype() == CameraFeed.FEED_RGB, "camera feed must be RGB8")
+	var datatype := camera_feed.get_datatype()
+	print("camera format changed to %s" % datatype)
 
-	var texture_rgb := CameraTexture.new()
-	texture_rgb.camera_feed_id = camera_feed.get_id()
-	texture_rgb.which_feed = CameraServer.FEED_RGBA_IMAGE
+	var frame_size := Vector2i.ZERO
+	var is_android_front_camera := OS.has_feature("android") and camera_feed.get_position() == CameraFeed.FEED_FRONT
+	camera_texture.flip_h = is_android_front_camera
 
-	var frame_size = texture_rgb.get_size()
-
-	camera_texture.material = null
-	camera_texture.texture = texture_rgb
+	if datatype == CameraFeed.FEED_RGB:
+		var texture_rgb := _create_camera_texture(CameraServer.FEED_RGBA_IMAGE)
+		camera_texture.material = null
+		camera_texture.texture = texture_rgb
+		camera_texture.flip_v = false
+		frame_size = texture_rgb.get_size()
+	elif datatype == CameraFeed.FEED_YCBCR_SEP:
+		var texture_y := _create_camera_texture(CameraServer.FEED_Y_IMAGE)
+		var texture_cbcr := _create_camera_texture(CameraServer.FEED_CBCR_IMAGE)
+		camera_texture.material = _create_ycbcr_material(texture_cbcr)
+		camera_texture.texture = texture_y
+		camera_texture.flip_v = OS.has_feature("android")
+		frame_size = texture_y.get_size()
+	else:
+		push_error("unsupported camera feed datatype: %s" % datatype)
+		return
 
 	var feed_rotation: float = camera_feed.feed_transform.get_rotation()
 	if camera_texture.flip_h:

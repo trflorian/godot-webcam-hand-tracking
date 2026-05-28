@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bxnvdu6lk52u7" path="res://tracking/hand_tracking.gd" id="1_f3sb7"]
 [ext_resource type="AudioStream" uid="uid://sjevphkuqfe2" path="res://bullet/pew.ogg" id="2_fj7yv"]
+[ext_resource type="PackedScene" uid="uid://ba0x3c1bic4bm" path="res://box/box.tscn" id="3_tlwt5"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_f3sb7"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -44,7 +45,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 texture = SubResource("ViewportTexture_f3sb7")
-expand_mode = 3
+expand_mode = 5
 stretch_mode = 5
 flip_h = true
 
@@ -76,3 +77,6 @@ offset_bottom = 40.0
 
 [node name="BulletAudio" type="AudioStreamPlayer" parent="HandTracking" unique_id=1184950516]
 stream = ExtResource("2_fj7yv")
+
+[node name="Box" parent="." unique_id=208234410 instance=ExtResource("3_tlwt5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 0)

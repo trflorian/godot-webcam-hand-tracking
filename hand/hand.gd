@@ -48,11 +48,11 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		if event.is_pressed() and event.keycode == KEY_SPACE:
 			var bullet_inst: Bullet = bullet.instantiate()
-			add_child(bullet_inst)
 			var dir = (hand_landmarks[8].global_position - hand_landmarks[7].global_position).normalized()
 			dir.z = 0
 			bullet_inst.direction = dir  
-			bullet_inst.global_position = hand_landmarks[8].global_position + dir
+			bullet_inst.position = hand_landmarks[8].global_position + dir
+			add_child(bullet_inst)
 			
 			if dir.length() > 0:
 				bullet_inst.look_at(bullet_inst.global_position + dir, Vector3.UP)
@@ -73,6 +73,9 @@ func _update_hand_landmark(landmark_id: int, landmark_pos: Vector3) -> void:
 
 func parse_hand_landmarks_from_data(hand_data: MediaPipeNormalizedLandmarks) -> void:
 	visible = hand_data != null
+	
+	for lm_id in range(NUM_LANDMARKS):
+		hand_landmarks[lm_id].get_child(0).disabled = hand_data == null
 	
 	if not hand_data:
 		return

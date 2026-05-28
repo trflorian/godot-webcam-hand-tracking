@@ -37,9 +37,10 @@ func _process(_delta: float) -> void:
 	if highlight_touches:
 		_material.albedo_color = Color.RED if _touching_tips > 0 else Color.WHITE
 
-func _physics_process(_delta: float) -> void:
-	global_position = lerp(global_position, target, 0.3)
-	#move_and_collide((target - global_position) * delta * 10)
+func _physics_process(delta: float) -> void:
+	move_and_collide((target - global_position) * delta * 10)
+	global_position = lerp(global_position, target, 0.1)
+	apply_central_force((target - global_position) * delta * 1000)
 
 func is_interaction(lm1: HandLandmark, lm2: HandLandmark) -> bool:
 	if lm1.type != LandmarkType.TIP or lm2.type != LandmarkType.TIP:

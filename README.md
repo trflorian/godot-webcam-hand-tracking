@@ -10,4 +10,5 @@ THis has the huge advantage of actually being redistributable, the entire projec
 
 ## Mobile
 
-<img width="1080" height="1920" alt="thumbnail" src="https://github.com/user-attachments/assets/350e1397-387f-4928-a2eb-5c63055987b3" />
+<img width="1453" height="876" alt="image" src="https://github.com/user-attachments/assets/2a32ea5d-5d26-427f-a15b-908340c42ac6" />
+

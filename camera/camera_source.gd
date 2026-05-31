@@ -69,15 +69,8 @@ func _get_front_camera_feed() -> CameraFeed:
 func _start_camera() -> void:
 	status_changed.emit("Searching for webcams...")
 	CameraServer.monitoring_feeds = true
-	if not OS.has_feature("android"):
-		await CameraServer.camera_feeds_updated
-	else:
-		await get_tree().create_timer(0.2).timeout
-
-	if not OS.has_feature("android"):
-		camera_feed = CameraServer.get_feed(0)
-	else:
-		camera_feed = _get_front_camera_feed()
+	await _wait_for_feeds()
+	camera_feed = _select_camera_feed()
 
 	if camera_feed == null:
 		return
@@ -91,6 +84,17 @@ func _start_camera() -> void:
 	print("using format %s" % formats[best_format_idx])
 	camera_feed.set_format(best_format_idx, {})
 	camera_feed.feed_is_active = true
+
+func _wait_for_feeds() -> void:
+	if not OS.has_feature("android"):
+		await CameraServer.camera_feeds_updated
+	else:
+		await get_tree().create_timer(0.2).timeout
+
+func _select_camera_feed() -> CameraFeed:
+	if not OS.has_feature("android"):
+		return CameraServer.get_feed(0)
+	return _get_front_camera_feed()
 
 func _fps_from_format(format: Dictionary) -> int:
 	if format.has("frame_numerator") and format.has("frame_denominator"):

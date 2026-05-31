@@ -2,9 +2,11 @@ extends Node3D
 
 class_name HandView
 
+enum HandSide { LEFT, RIGHT }
+
 var landmark_scene: PackedScene = preload("res://hand/hand_landmark.tscn")
 
-@export_enum("Left", "Right") var hand_side: String
+@export var hand_side: HandSide = HandSide.LEFT
 
 var hand_landmarks: Array[HandLandmark] = []
 var hand_lines: Array[MeshInstance3D] = []
@@ -73,6 +75,6 @@ func _set_colliders_enabled(enabled: bool) -> void:
 
 func _on_hands_updated(left_hand_data: MediaPipeNormalizedLandmarks, right_hand_data: MediaPipeNormalizedLandmarks) -> void:
 	var selected_data: MediaPipeNormalizedLandmarks = left_hand_data
-	if hand_side == "Right":
+	if hand_side == HandSide.RIGHT:
 		selected_data = right_hand_data
 	update_from_landmarks(selected_data)

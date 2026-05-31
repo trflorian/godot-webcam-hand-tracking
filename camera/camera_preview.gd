@@ -17,13 +17,6 @@ func _ready() -> void:
 func set_status(text: String) -> void:
 	camera_status.text = text
 
-func mark_frame_available() -> void:
-	if _has_frame:
-		return
-	_has_frame = true
-	camera_status.visible = false
-	camera_view.visible = true
-
 func set_preview_visible(visible_now: bool) -> void:
 	if _is_preview_visible == visible_now:
 		return
@@ -34,7 +27,11 @@ func set_preview_visible(visible_now: bool) -> void:
 	tween.set_ease(Tween.EASE_OUT)
 
 func _on_frame_ready(_image: Image) -> void:
-	mark_frame_available()
+	if _has_frame:
+		return
+	_has_frame = true
+	camera_status.visible = false
+	camera_view.visible = true
 
 func _on_hands_visible_changed(has_hands: bool) -> void:
 	set_preview_visible(not has_hands)

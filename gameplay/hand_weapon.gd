@@ -13,6 +13,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		_shoot()
 
 func _shoot() -> void:
+	if source_hand == null:
+		return
+
 	var index_tip := source_hand.get_landmark_global_position(8)
 	var index_prev := source_hand.get_landmark_global_position(7)
 	var direction := (index_tip - index_prev).normalized()

@@ -16,6 +16,7 @@ var camera_feed: CameraFeed
 var camera_viewport: SubViewport
 var camera_surface: TextureRect
 var _camera_retry_pending: bool = false
+var _connection_monitor_started: bool = false
 
 func _ready() -> void:
 	_create_processing_nodes()
@@ -73,6 +74,7 @@ func _start_camera() -> void:
 	if not CameraServer.camera_feeds_updated.is_connected(_on_camera_feeds_updated):
 		CameraServer.camera_feeds_updated.connect(_on_camera_feeds_updated)
 	_schedule_camera_retry(0.2)
+	_monitor_camera_connection()
 
 func _try_open_camera() -> void:
 	if camera_feed != null:
@@ -104,7 +106,45 @@ func _schedule_camera_retry(delay: float) -> void:
 	_try_open_camera()
 
 func _on_camera_feeds_updated() -> void:
+	if camera_feed != null and not _is_current_feed_connected():
+		_handle_camera_disconnected()
 	_try_open_camera()
+
+func _monitor_camera_connection() -> void:
+	if _connection_monitor_started:
+		return
+	_connection_monitor_started = true
+	while true:
+		await get_tree().create_timer(1.0).timeout
+		if camera_feed != null and not _is_current_feed_connected():
+			_handle_camera_disconnected()
+
+func _is_current_feed_connected() -> bool:
+	if camera_feed == null:
+		return false
+	var current_feed_id := camera_feed.get_id()
+	for i in range(CameraServer.get_feed_count()):
+		if CameraServer.get_feed(i).get_id() == current_feed_id:
+			return true
+	return false
+
+func _handle_camera_disconnected() -> void:
+	print("camera disconnected")
+	_disconnect_camera_feed()
+	camera_surface.texture = null
+	camera_surface.material = null
+	status_changed.emit("No webcam connected. Please connect one.")
+	_schedule_camera_retry(1.0)
+
+func _disconnect_camera_feed() -> void:
+	if camera_feed == null:
+		return
+	if camera_feed.format_changed.is_connected(_camera_format_changed):
+		camera_feed.format_changed.disconnect(_camera_format_changed)
+	if camera_feed.frame_changed.is_connected(_camera_frame_changed):
+		camera_feed.frame_changed.disconnect(_camera_frame_changed)
+	camera_feed.feed_is_active = false
+	camera_feed = null
 
 func _select_camera_feed() -> CameraFeed:
 	if not OS.has_feature("android"):

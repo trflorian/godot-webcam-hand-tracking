@@ -9,15 +9,10 @@ var _is_preview_visible: bool = false
 var _has_frame: bool = false
 
 func _ready() -> void:
-	var camera_source := get_node_or_null("/root/CameraSource") as CameraSource
-	if camera_source != null:
-		camera_source.frame_ready.connect(_on_frame_ready)
-		camera_source.status_changed.connect(set_status)
-		camera_view.texture = camera_source.get_preview_texture()
-
-	var hand_tracker := get_node_or_null("/root/HandTracker") as HandTracker
-	if hand_tracker != null:
-		hand_tracker.hands_visible_changed.connect(_on_hands_visible_changed)
+	CameraSource.frame_ready.connect(_on_frame_ready)
+	CameraSource.status_changed.connect(set_status)
+	camera_view.texture = CameraSource.get_preview_texture()
+	HandTracker.hands_visible_changed.connect(_on_hands_visible_changed)
 
 func set_status(text: String) -> void:
 	camera_status.text = text

@@ -16,10 +16,7 @@ func _ready() -> void:
 	_create_hand_lines()
 	visible = false
 	_set_colliders_enabled(false)
-
-	var hand_tracker := get_node_or_null("/root/HandTracker") as HandTracker
-	if hand_tracker != null:
-		hand_tracker.hands_updated.connect(_on_hands_updated)
+	HandTracker.hands_updated.connect(_on_hands_updated)
 
 func _process(_delta: float) -> void:
 	if not _has_received_landmarks:

@@ -16,6 +16,9 @@ func _ready() -> void:
 
 func set_status(text: String) -> void:
 	camera_status.text = text
+	camera_status.visible = text != ""
+	if text != "":
+		_has_frame = false
 
 func set_preview_visible(visible_now: bool) -> void:
 	if _is_preview_visible == visible_now:

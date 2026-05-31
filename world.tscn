@@ -1,8 +1,13 @@
 [gd_scene format=3 uid="uid://chqtekgyx6oqi"]
 
-[ext_resource type="Script" uid="uid://bxnvdu6lk52u7" path="res://tracking/hand_tracking.gd" id="1_f3sb7"]
-[ext_resource type="AudioStream" uid="uid://sjevphkuqfe2" path="res://bullet/pew.ogg" id="2_fj7yv"]
-[ext_resource type="PackedScene" uid="uid://ba0x3c1bic4bm" path="res://box/box.tscn" id="3_tlwt5"]
+[ext_resource type="Script" uid="uid://cv6iuiwhtk2h6" path="res://world.gd" id="1"]
+[ext_resource type="PackedScene" path="res://camera/camera_rig.tscn" id="2"]
+[ext_resource type="Script" uid="uid://dwrpgk3hflenu" path="res://tracking/hand_tracker.gd" id="3"]
+[ext_resource type="Script" uid="uid://bqdn7psccbm0b" path="res://hand/hands_view.gd" id="4"]
+[ext_resource type="Script" uid="uid://dfe8rhv0hkqfb" path="res://hand/hand_view.gd" id="5"]
+[ext_resource type="Script" uid="uid://dgm6e20fc2ycs" path="res://gameplay/hand_weapon.gd" id="6"]
+[ext_resource type="AudioStream" uid="uid://sjevphkuqfe2" path="res://bullet/pew.ogg" id="7"]
+[ext_resource type="PackedScene" uid="uid://ba0x3c1bic4bm" path="res://box/box.tscn" id="8"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_f3sb7"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -17,10 +22,8 @@ background_color = Color(0.5529412, 0.7529412, 0.8901961, 1)
 sky = SubResource("Sky_fj7yv")
 tonemap_mode = 2
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_f3sb7"]
-viewport_path = NodePath("HandTracking/CameraViewport")
-
 [node name="World" type="Node3D" unique_id=702269123]
+script = ExtResource("1")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1556942276]
 environment = SubResource("Environment_tlwt5")
@@ -32,51 +35,27 @@ shadow_enabled = true
 [node name="Camera3D" type="Camera3D" parent="." unique_id=717796208]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 15)
 
-[node name="HandTracking" type="Node3D" parent="." unique_id=1013154729]
-script = ExtResource("1_f3sb7")
+[node name="CameraRig" parent="." unique_id=1893997991 instance=ExtResource("2")]
 
-[node name="CameraCanvasLayer" type="CanvasLayer" parent="HandTracking" unique_id=588734707]
+[node name="HandTracker" type="Node" parent="." unique_id=1331857522]
+script = ExtResource("3")
 
-[node name="CameraView" type="TextureRect" parent="HandTracking/CameraCanvasLayer" unique_id=796806377]
-modulate = Color(1, 1, 1, 0)
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = SubResource("ViewportTexture_f3sb7")
-expand_mode = 5
-stretch_mode = 5
-flip_h = true
+[node name="HandsView" type="Node3D" parent="." unique_id=1525390934]
+script = ExtResource("4")
 
-[node name="CameraStatus" type="Label" parent="HandTracking/CameraCanvasLayer" unique_id=1335484493]
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -255.0
-offset_top = -52.0
-offset_right = 255.0
-offset_bottom = 52.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 40
-text = "..."
-horizontal_alignment = 1
-vertical_alignment = 1
+[node name="LeftHandView" type="Node3D" parent="HandsView" unique_id=785074974]
+script = ExtResource("5")
 
-[node name="CameraViewport" type="SubViewport" parent="HandTracking" unique_id=349586267]
-disable_3d = true
-render_target_update_mode = 4
+[node name="RightHandView" type="Node3D" parent="HandsView" unique_id=960871504]
+script = ExtResource("5")
 
-[node name="CameraSurface" type="TextureRect" parent="HandTracking/CameraViewport" unique_id=1188329137]
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="BulletAudio" type="AudioStreamPlayer" parent="." unique_id=955803082]
+stream = ExtResource("7")
 
-[node name="BulletAudio" type="AudioStreamPlayer" parent="HandTracking" unique_id=1184950516]
-stream = ExtResource("2_fj7yv")
+[node name="HandWeapon" type="Node" parent="." unique_id=1482310918]
+script = ExtResource("6")
+hands_view_path = NodePath("../HandsView")
+bullet_audio_path = NodePath("../BulletAudio")
 
-[node name="Box" parent="." unique_id=208234410 instance=ExtResource("3_tlwt5")]
+[node name="Box" parent="." unique_id=208234410 instance=ExtResource("8")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 0)

@@ -15,6 +15,7 @@ const TARGET_CAMERA_SIZE := Vector2i(1280, 720)
 var camera_feed: CameraFeed
 var camera_viewport: SubViewport
 var camera_surface: TextureRect
+var _camera_retry_pending: bool = false
 
 func _ready() -> void:
 	_create_processing_nodes()
@@ -36,7 +37,7 @@ func _create_processing_nodes() -> void:
 func _start() -> void:
 	if not await _request_camera_permissions():
 		return
-	await _start_camera()
+	_start_camera()
 
 func _request_camera_permissions() -> bool:
 	if not OS.has_feature("android"):
@@ -69,10 +70,19 @@ func _get_front_camera_feed() -> CameraFeed:
 func _start_camera() -> void:
 	status_changed.emit("Searching for webcams...")
 	CameraServer.monitoring_feeds = true
-	await _wait_for_feeds()
-	camera_feed = _select_camera_feed()
+	if not CameraServer.camera_feeds_updated.is_connected(_on_camera_feeds_updated):
+		CameraServer.camera_feeds_updated.connect(_on_camera_feeds_updated)
+	_schedule_camera_retry(0.2)
 
+func _try_open_camera() -> void:
+	if camera_feed != null:
+		return
+
+	camera_feed = _select_camera_feed()
 	if camera_feed == null:
+		if not OS.has_feature("android"):
+			status_changed.emit("No webcam connected. Please connect one.")
+			_schedule_camera_retry(1.0)
 		return
 
 	status_changed.emit("Opening '%s'..." % camera_feed.get_name())
@@ -85,14 +95,21 @@ func _start_camera() -> void:
 	camera_feed.set_format(best_format_idx, {})
 	camera_feed.feed_is_active = true
 
-func _wait_for_feeds() -> void:
-	if not OS.has_feature("android"):
-		await CameraServer.camera_feeds_updated
-	else:
-		await get_tree().create_timer(0.2).timeout
+func _schedule_camera_retry(delay: float) -> void:
+	if _camera_retry_pending or camera_feed != null:
+		return
+	_camera_retry_pending = true
+	await get_tree().create_timer(delay).timeout
+	_camera_retry_pending = false
+	_try_open_camera()
+
+func _on_camera_feeds_updated() -> void:
+	_try_open_camera()
 
 func _select_camera_feed() -> CameraFeed:
 	if not OS.has_feature("android"):
+		if CameraServer.get_feed_count() == 0:
+			return null
 		return CameraServer.get_feed(0)
 	return _get_front_camera_feed()
 

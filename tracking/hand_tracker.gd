@@ -1,7 +1,5 @@
 extends Node
 
-class_name HandTracker
-
 signal hands_updated(left_hand: MediaPipeNormalizedLandmarks, right_hand: MediaPipeNormalizedLandmarks)
 signal hands_visible_changed(has_hands: bool)
 signal status_changed(text: String)
@@ -14,6 +12,9 @@ var _received_result: bool = false
 
 func _ready() -> void:
 	_init_task()
+	var camera_source := get_node_or_null("/root/CameraSource") as CameraSource
+	if camera_source != null:
+		camera_source.frame_ready.connect(process_frame)
 
 func _init_task() -> void:
 	status_changed.emit("Loading Mediapipe Task file...")

@@ -1,7 +1,5 @@
 extends Node
 
-class_name CameraSource
-
 signal frame_ready(image: Image)
 signal status_changed(text: String)
 
@@ -12,15 +10,28 @@ const FORMAT_RANKING := {
 }
 const TARGET_CAMERA_SIZE := Vector2i(1280, 720)
 
-@onready var camera_viewport: SubViewport = $CameraViewport
-@onready var camera_surface: TextureRect = $CameraViewport/CameraSurface
-
 @export var ycbcr_shader: Shader = preload("res://camera/ycbcr_to_rgb.gdshader")
 
 var camera_feed: CameraFeed
+var camera_viewport: SubViewport
+var camera_surface: TextureRect
 
 func _ready() -> void:
+	_create_processing_nodes()
 	_start()
+
+func _create_processing_nodes() -> void:
+	camera_viewport = SubViewport.new()
+	camera_viewport.name = "CameraViewport"
+	camera_viewport.disable_3d = true
+	camera_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(camera_viewport)
+
+	camera_surface = TextureRect.new()
+	camera_surface.name = "CameraSurface"
+	camera_surface.offset_right = 40.0
+	camera_surface.offset_bottom = 40.0
+	camera_viewport.add_child(camera_surface)
 
 func _start() -> void:
 	if not await _request_camera_permissions():
@@ -172,3 +183,8 @@ func _camera_frame_changed() -> void:
 	var image := texture.get_image()
 	image.convert(Image.FORMAT_RGB8)
 	frame_ready.emit(image)
+
+func get_preview_texture() -> Texture2D:
+	if camera_viewport == null:
+		return null
+	return camera_viewport.get_texture()

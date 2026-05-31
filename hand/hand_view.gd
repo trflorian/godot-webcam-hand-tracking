@@ -4,17 +4,25 @@ class_name HandView
 
 var landmark_scene: PackedScene = preload("res://hand/hand_landmark.tscn")
 
+@export_enum("Left", "Right") var hand_side: String
+
 var hand_landmarks: Array[HandLandmark] = []
 var hand_lines: Array[MeshInstance3D] = []
 var _is_tracking: bool = false
+var _has_received_landmarks: bool = false
 
 func _ready() -> void:
 	_create_hand_landmark_nodes()
 	_create_hand_lines()
 	visible = false
+	_set_colliders_enabled(false)
+
+	var hand_tracker := get_node_or_null("/root/HandTracker") as HandTracker
+	if hand_tracker != null:
+		hand_tracker.hands_updated.connect(_on_hands_updated)
 
 func _process(_delta: float) -> void:
-	if not _is_tracking:
+	if not _has_received_landmarks:
 		return
 	_update_hand_lines()
 
@@ -28,14 +36,13 @@ func get_landmark_global_position(landmark_id: int) -> Vector3:
 
 func update_from_landmarks(hand_data: MediaPipeNormalizedLandmarks) -> void:
 	_is_tracking = hand_data != null
-	visible = _is_tracking
-
-	for hand_landmark in hand_landmarks:
-		var collision_shape := hand_landmark.get_node("CollisionShape3D") as CollisionShape3D
-		collision_shape.disabled = not _is_tracking
-
-	if not _is_tracking:
+	if hand_data == null:
 		return
+
+	if not _has_received_landmarks:
+		_has_received_landmarks = true
+		visible = true
+		_set_colliders_enabled(true)
 
 	for lm_id in range(HandModel.NUM_LANDMARKS):
 		var lm_data := hand_data.landmarks[lm_id]
@@ -61,3 +68,14 @@ func _update_hand_lines() -> void:
 		var p0 := hand_landmarks[mapping[0]].global_position
 		var p1 := hand_landmarks[mapping[1]].global_position
 		LineRenderer.edit_line(hand_lines[i], p0, p1)
+
+func _set_colliders_enabled(enabled: bool) -> void:
+	for hand_landmark in hand_landmarks:
+		var collision_shape := hand_landmark.get_node("CollisionShape3D") as CollisionShape3D
+		collision_shape.disabled = not enabled
+
+func _on_hands_updated(left_hand_data: MediaPipeNormalizedLandmarks, right_hand_data: MediaPipeNormalizedLandmarks) -> void:
+	var selected_data: MediaPipeNormalizedLandmarks = left_hand_data
+	if hand_side == "Right":
+		selected_data = right_hand_data
+	update_from_landmarks(selected_data)

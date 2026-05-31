@@ -20,6 +20,8 @@ config/icon="res://icon.svg"
 MediaPipeExternalFiles="*uid://d3neb5cwnsvqs"
 GDMPAndroid="*uid://ccp6gbqbg33bg"
 LineRenderer="*uid://ccl5gmdd5sbsd"
+CameraSource="*res://camera/camera_source.gd"
+HandTracker="*res://tracking/hand_tracker.gd"
 
 [display]
 

@@ -4,23 +4,15 @@ class_name HandWeapon
 
 const BULLET_SCENE: PackedScene = preload("res://bullet/bullet.tscn")
 
-@export var hands_view_path: NodePath
-@export var bullet_audio_path: NodePath
+@export var source_hand: HandView
 
-@onready var hands_view: HandsView = get_node_or_null(hands_view_path) as HandsView
-@onready var bullet_audio: AudioStreamPlayer = get_node_or_null(bullet_audio_path) as AudioStreamPlayer
+@onready var bullet_audio: AudioStreamPlayer = $BulletAudio
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_pressed() and event.keycode == KEY_SPACE:
 		_shoot()
 
 func _shoot() -> void:
-	if hands_view == null:
-		return
-	var source_hand := hands_view.get_primary_hand()
-	if source_hand == null:
-		return
-
 	var index_tip := source_hand.get_landmark_global_position(8)
 	var index_prev := source_hand.get_landmark_global_position(7)
 	var direction := (index_tip - index_prev).normalized()

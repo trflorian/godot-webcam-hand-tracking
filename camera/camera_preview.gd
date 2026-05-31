@@ -12,6 +12,7 @@ func _ready() -> void:
 	CameraSource.frame_ready.connect(_on_frame_ready)
 	CameraSource.status_changed.connect(set_status)
 	camera_view.texture = CameraSource.get_preview_texture()
+	set_status(CameraSource.get_status())
 	HandTracker.hands_visible_changed.connect(_on_hands_visible_changed)
 
 func set_status(text: String) -> void:

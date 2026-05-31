@@ -17,6 +17,7 @@ var camera_viewport: SubViewport
 var camera_surface: TextureRect
 var _camera_retry_pending: bool = false
 var _connection_monitor_started: bool = false
+var _status_text: String = ""
 
 func _ready() -> void:
 	_create_processing_nodes()
@@ -43,10 +44,12 @@ func _start() -> void:
 func _request_camera_permissions() -> bool:
 	if not OS.has_feature("android"):
 		return true
+	if _has_camera_permission():
+		return true
 	OS.request_permissions()
 	await get_tree().on_request_permissions_result
 	if not _has_camera_permission():
-		status_changed.emit("Camera permission denied!")
+		set_status("Camera permission denied!")
 		return false
 	return true
 
@@ -56,7 +59,7 @@ func _has_camera_permission() -> bool:
 func _get_front_camera_feed() -> CameraFeed:
 	var num_cameras := CameraServer.get_feed_count()
 	if num_cameras == 0:
-		status_changed.emit("No camera connected!")
+		set_status("No camera connected!")
 		return null
 
 	for i in range(num_cameras):
@@ -65,11 +68,11 @@ func _get_front_camera_feed() -> CameraFeed:
 			print("Front camera found at index: ", i)
 			return feed
 
-	status_changed.emit("No front camera found!")
+	set_status("No front camera found!")
 	return null
 
 func _start_camera() -> void:
-	status_changed.emit("Searching for webcams...")
+	set_status("Searching for webcams...")
 	CameraServer.monitoring_feeds = true
 	if not CameraServer.camera_feeds_updated.is_connected(_on_camera_feeds_updated):
 		CameraServer.camera_feeds_updated.connect(_on_camera_feeds_updated)
@@ -83,11 +86,11 @@ func _try_open_camera() -> void:
 	camera_feed = _select_camera_feed()
 	if camera_feed == null:
 		if not OS.has_feature("android"):
-			status_changed.emit("No webcam connected. Please connect one.")
+			set_status("No webcam connected. Please connect one.")
 			_schedule_camera_retry(1.0)
 		return
 
-	status_changed.emit("Opening '%s'..." % camera_feed.get_name())
+	set_status("Opening '%s'..." % camera_feed.get_name())
 	camera_feed.format_changed.connect(self._camera_format_changed, ConnectFlags.CONNECT_DEFERRED)
 	camera_feed.frame_changed.connect(self._camera_frame_changed, ConnectFlags.CONNECT_DEFERRED)
 
@@ -133,7 +136,7 @@ func _handle_camera_disconnected() -> void:
 	_disconnect_camera_feed()
 	camera_surface.texture = null
 	camera_surface.material = null
-	status_changed.emit("No webcam connected. Please connect one.")
+	set_status("No webcam connected. Please connect one.")
 	_schedule_camera_retry(1.0)
 
 func _disconnect_camera_feed() -> void:
@@ -249,3 +252,10 @@ func get_preview_texture() -> Texture2D:
 	if camera_viewport == null:
 		return null
 	return camera_viewport.get_texture()
+
+func get_status() -> String:
+	return _status_text
+
+func set_status(text: String) -> void:
+	_status_text = text
+	status_changed.emit(text)

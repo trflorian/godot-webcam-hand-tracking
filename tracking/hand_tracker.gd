@@ -61,5 +61,7 @@ func _handle_result(result: MediaPipeHandLandmarkerResult) -> void:
 		hands_visible_changed.emit(has_hands)
 
 func _load_model(path: String) -> FileAccess:
-	assert(FileAccess.file_exists(path), "task file %s does not exist" % path)
+	if not FileAccess.file_exists(path):
+		push_error("Task file %s does not exist. Install the model and include tasks/*.task in the export preset." % path)
+		return null
 	return FileAccess.open(path, FileAccess.READ)

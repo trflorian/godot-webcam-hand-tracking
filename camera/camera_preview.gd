@@ -36,6 +36,7 @@ func _on_frame_ready(_image: Image) -> void:
 	_has_frame = true
 	camera_status.visible = false
 	camera_view.visible = true
+	set_preview_visible(true)
 
 func _on_hands_visible_changed(has_hands: bool) -> void:
 	set_preview_visible(not has_hands)

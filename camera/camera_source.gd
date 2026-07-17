@@ -95,10 +95,28 @@ func _try_open_camera() -> void:
 	camera_feed.frame_changed.connect(self._camera_frame_changed, ConnectFlags.CONNECT_DEFERRED)
 
 	var formats := camera_feed.get_formats()
+	if formats.is_empty():
+		set_status("Camera has no supported formats.")
+		push_error("Camera feed '%s' has no supported formats." % camera_feed.get_name())
+		_disconnect_camera_feed()
+		return
+
 	var best_format_idx := _argmax_camera_format(formats)
 	print("using format %s" % formats[best_format_idx])
-	camera_feed.set_format(best_format_idx, {})
+	if not camera_feed.set_format(best_format_idx, {}):
+		set_status("Failed to select a camera format.")
+		push_error("Failed to select camera format %s." % formats[best_format_idx])
+		_disconnect_camera_feed()
+		return
+
+	# set_format() does not always emit format_changed when this format is
+	# already selected, so configure the textures explicitly as well.
+	_camera_format_changed()
 	camera_feed.feed_is_active = true
+	if not camera_feed.feed_is_active:
+		set_status("Failed to activate the camera.")
+		push_error("Failed to activate camera feed '%s'." % camera_feed.get_name())
+		_disconnect_camera_feed()
 
 func _schedule_camera_retry(delay: float) -> void:
 	if _camera_retry_pending or camera_feed != null:
@@ -237,6 +255,7 @@ func _camera_format_changed() -> void:
 	var offset := Vector2(min(size_rotated.x, 0), min(size_rotated.y, 0))
 	camera_surface.rotation = feed_rotation
 	camera_surface.position = offset * -1
+	camera_surface.size = Vector2(frame_size)
 	camera_viewport.size = frame_size
 
 func _camera_frame_changed() -> void:

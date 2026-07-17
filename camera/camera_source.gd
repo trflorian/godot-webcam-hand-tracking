@@ -104,19 +104,18 @@ func _try_open_camera() -> void:
 	var best_format_idx := _argmax_camera_format(formats)
 	print("using format %s" % formats[best_format_idx])
 	if not camera_feed.set_format(best_format_idx, {}):
-		set_status("Failed to select a camera format.")
-		push_error("Failed to select camera format %s." % formats[best_format_idx])
-		_disconnect_camera_feed()
-		return
+		push_warning("Could not select camera format %s; trying the camera's default format." % formats[best_format_idx])
 
-	# set_format() does not always emit format_changed when this format is
-	# already selected, so configure the textures explicitly as well.
-	_camera_format_changed()
 	camera_feed.feed_is_active = true
 	if not camera_feed.feed_is_active:
 		set_status("Failed to activate the camera.")
 		push_error("Failed to activate camera feed '%s'." % camera_feed.get_name())
 		_disconnect_camera_feed()
+		return
+
+	# set_format() does not always emit format_changed when this format is
+	# already selected, so configure the textures explicitly after activation.
+	_camera_format_changed()
 
 func _schedule_camera_retry(delay: float) -> void:
 	if _camera_retry_pending or camera_feed != null:

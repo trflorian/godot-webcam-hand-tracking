@@ -39,6 +39,9 @@ func process_frame(image: Image) -> void:
 	task.detect_async(mp_image, Time.get_ticks_msec())
 
 func _result_callback(result: MediaPipeHandLandmarkerResult, _image: MediaPipeImage, _timestamp_ms: int) -> void:
+	_handle_result.call_deferred(result)
+
+func _handle_result(result: MediaPipeHandLandmarkerResult) -> void:
 	var left_hand_landmarks: MediaPipeNormalizedLandmarks = null
 	var right_hand_landmarks: MediaPipeNormalizedLandmarks = null
 

@@ -25,8 +25,8 @@ func _shoot() -> void:
 
 	var bullet := BULLET_SCENE.instantiate() as Bullet
 	bullet.direction = direction
-	bullet.global_position = index_tip + direction
 	get_tree().current_scene.add_child(bullet)
+	bullet.global_position = index_tip + direction
 	bullet.look_at(bullet.global_position + direction, Vector3.UP)
 
 	if bullet_audio != null:

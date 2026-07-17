@@ -37,7 +37,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 15)
 
 [node name="LeftHandView" type="Node3D" parent="Hands" unique_id=785074974]
 script = ExtResource("2")
-hand_side = 0
 
 [node name="RightHandView" type="Node3D" parent="Hands" unique_id=960871504]
 script = ExtResource("2")
